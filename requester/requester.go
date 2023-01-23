@@ -17,9 +17,11 @@ package requester
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -80,6 +82,12 @@ type Work struct {
 
 	// DisableRedirects is an option to prevent the following of HTTP redirects
 	DisableRedirects bool
+
+	// PrintResponse is an option to print the response to stderr.
+	PrintResponse bool
+
+	// UnixSocket is an option to connect through a unix domain socket.
+	UnixSocket string
 
 	// Output represents the output type. If "csv" is provided, the
 	// output will be dumped as a csv stream.
@@ -147,6 +155,7 @@ func (b *Work) Finish() {
 func (b *Work) makeRequest(c *http.Client) {
 	s := now()
 	var size int64
+	var written int64
 	var code int
 	var dnsStart, connStart, resStart, reqStart, delayStart time.Duration
 	var dnsDuration, connDuration, resDuration, reqDuration, delayDuration time.Duration
@@ -186,8 +195,17 @@ func (b *Work) makeRequest(c *http.Client) {
 	if err == nil {
 		size = resp.ContentLength
 		code = resp.StatusCode
-		io.Copy(ioutil.Discard, resp.Body)
+
+		if b.PrintResponse {
+			written, _ = io.Copy(os.Stderr, resp.Body)
+		} else {
+			written, _ = io.Copy(io.Discard, resp.Body)
+		}
 		resp.Body.Close()
+	}
+
+	if size == -1 {
+		size = written
 	}
 	t := now()
 	resDuration = t - resStart
@@ -245,6 +263,13 @@ func (b *Work) runWorkers() {
 		DisableKeepAlives:   b.DisableKeepAlives,
 		Proxy:               http.ProxyURL(b.ProxyAddr),
 	}
+
+	if b.UnixSocket != "" {
+		tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", b.UnixSocket)
+		}
+	}
+
 	if b.H2 {
 		http2.ConfigureTransport(tr)
 	} else {

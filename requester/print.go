@@ -54,6 +54,7 @@ func newTemplate(output string) *template.Template {
 }
 
 var tmplFuncMap = template.FuncMap{
+	"formatBytes":     formatBytes,
 	"formatNumber":    formatNumber,
 	"formatNumberInt": formatNumberInt,
 	"histogram":       histogram,
@@ -63,6 +64,17 @@ var tmplFuncMap = template.FuncMap{
 func jsonify(v interface{}) string {
 	d, _ := json.Marshal(v)
 	return string(d)
+}
+
+func formatBytes(duration interface{}) string {
+	switch v := duration.(type) {
+	case float64:
+		return ByteSize(v).String()
+	case int64:
+		return ByteSize(v).String()
+	default:
+		return "expected int64 or float64"
+	}
 }
 
 func formatNumber(duration float64) string {
@@ -101,8 +113,9 @@ Summary:
   Average:	{{ formatNumber .Average }} secs
   Requests/sec:	{{ formatNumber .Rps }}
   {{ if gt .SizeTotal 0 }}
-  Total data:	{{ .SizeTotal }} bytes
-  Size/request:	{{ .SizeReq }} bytes{{ end }}
+  Total data:	{{ formatBytes .SizeTotal }}
+  Size/request:	{{ formatBytes .SizeReq }}
+  Throughput:	{{ formatBytes .Bps }}/sec{{ end }}
 
 Response time histogram:
 {{ histogram .Histogram }}

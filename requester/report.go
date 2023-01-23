@@ -145,6 +145,7 @@ func (r *report) snapshot() Report {
 		AvgTotal:    r.avgTotal,
 		Average:     r.average,
 		Rps:         r.rps,
+		Bps:         float64(r.sizeTotal) / r.total.Seconds(),
 		SizeTotal:   r.sizeTotal,
 		AvgConn:     r.avgConn,
 		AvgDNS:      r.avgDNS,
@@ -273,6 +274,7 @@ type Report struct {
 	Slowest  float64
 	Average  float64
 	Rps      float64
+	Bps      float64
 
 	AvgConn  float64
 	AvgDNS   float64

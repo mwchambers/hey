@@ -39,9 +39,9 @@ const (
 )
 
 var (
-	m           = flag.String("m", "GET", "")
+	m           = flag.String("X", "GET", "")
 	headers     = flag.String("h", "", "")
-	body        = flag.String("d", "", "")
+	body        = flag.String("data-raw", "", "")
 	bodyFile    = flag.String("D", "", "")
 	accept      = flag.String("A", "", "")
 	contentType = flag.String("T", "text/html", "")
@@ -63,6 +63,8 @@ var (
 	disableCompression = flag.Bool("disable-compression", false, "")
 	disableKeepAlives  = flag.Bool("disable-keepalive", false, "")
 	disableRedirects   = flag.Bool("disable-redirects", false, "")
+	unixSocket         = flag.String("unix-socket", "", "")
+	printResponse      = flag.Bool("print-response", false, "")
 	proxyAddr          = flag.String("x", "", "")
 )
 
@@ -85,13 +87,13 @@ Options:
       For example, -H "Accept: text/html" -H "Content-Type: application/xml" .
   -t  Timeout for each request in seconds. Default is 20, use 0 for infinite.
   -A  HTTP Accept header.
-  -d  HTTP request body.
   -D  HTTP request body from file. For example, /home/user/file.txt or ./file.txt.
   -T  Content-type, defaults to "text/html".
   -U  User-Agent, defaults to version "hey/0.0.1".
   -a  Basic authentication, username:password.
   -x  HTTP Proxy address as host:port.
   -h2 Enable HTTP/2.
+  -data-raw  HTTP request body.
 
   -host	HTTP Host header.
 
@@ -101,11 +103,13 @@ Options:
   -disable-redirects    Disable following of HTTP redirects
   -cpus                 Number of used cpu cores.
                         (default for current machine is %d cores)
+  -print-response       Write the request responses to stderr.
+  -unix-socket          Connect through this Unix domain socket.
 `
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(usage, runtime.NumCPU()))
+		fmt.Fprintf(os.Stderr, usage, runtime.NumCPU())
 	}
 
 	var hs headerSlice
@@ -231,6 +235,8 @@ func main() {
 		DisableCompression: *disableCompression,
 		DisableKeepAlives:  *disableKeepAlives,
 		DisableRedirects:   *disableRedirects,
+		PrintResponse:      *printResponse,
+		UnixSocket:         *unixSocket,
 		H2:                 *h2,
 		ProxyAddr:          proxyURL,
 		Output:             *output,
